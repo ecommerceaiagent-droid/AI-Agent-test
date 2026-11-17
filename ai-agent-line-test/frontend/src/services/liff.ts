@@ -10,7 +10,32 @@ export function getLiffId(): string {
 
 export function getLiffUrl(): string {
   const liffId = getLiffId();
-  return liffId ? `https://liff.line.me/${liffId}` : '';
+  return liffId ? `https://liff.line.me/${liffId}/check` : '';
+}
+
+export interface LiffStatus {
+  inClient: boolean;
+  os: string;
+  language: string;
+  lineVersion: string;
+  liffVersion: string;
+  contextType: string;
+  viewType: string;
+  loggedIn: boolean;
+}
+
+export function readLiffStatus(): LiffStatus {
+  const context = liff.getContext();
+  return {
+    inClient: liff.isInClient(),
+    os: liff.getOS() || 'Unavailable',
+    language: liff.getLanguage() || 'Unavailable',
+    lineVersion: liff.getLineVersion() || 'Unavailable',
+    liffVersion: liff.getVersion() || 'Unavailable',
+    contextType: context?.type || 'Unavailable',
+    viewType: context?.viewType || 'Unavailable',
+    loggedIn: liff.isLoggedIn(),
+  };
 }
 
 export function initLiff(): Promise<void> {

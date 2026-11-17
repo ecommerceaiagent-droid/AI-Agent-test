@@ -21,8 +21,3 @@ export interface AuthSession {
   verified: true;
   verifiedAt: string;
 }
-
-export interface SignupDraft {
-  fullName: string;
-  email: string;
-}

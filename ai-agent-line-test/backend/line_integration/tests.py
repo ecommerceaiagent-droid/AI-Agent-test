@@ -168,8 +168,8 @@ class WebhookTests(TestCase):
         self.assertEqual(mock_post.call_count, 2)
         first = mock_post.call_args_list[0].kwargs["json"]["messages"][0]["text"]
         second = mock_post.call_args_list[1].kwargs["json"]["messages"][0]["text"]
-        self.assertIn("You are not logged in yet.", first)
-        self.assertIn("https://liff.line.me/123-test/login", first)
+        self.assertIn("LIFF check", first)
+        self.assertIn("https://liff.line.me/123-test/check", first)
         self.assertEqual(first, second)
         self.assertEqual(
             mock_post.call_args_list[0].kwargs["headers"]["Authorization"],
@@ -177,17 +177,15 @@ class WebhookTests(TestCase):
         )
 
     @patch("line_integration.services.requests.post")
-    def test_logged_in_user_receives_homepage(self, mock_post: Mock) -> None:
+    def test_saved_user_still_receives_the_liff_check(self, mock_post: Mock) -> None:
         mock_post.return_value = Mock(status_code=200, ok=True, text="{}")
         LineAccount.objects.create(line_user_id="Uuser", display_name="Test User")
         body = webhook_body([text_event("evt-home", "hello")])
         response = self.post_webhook(body, sign(body))
         self.assertEqual(response.status_code, 200)
         text = mock_post.call_args.kwargs["json"]["messages"][0]["text"]
-        self.assertIn("Welcome back, Test User.", text)
-        self.assertIn("Sample homepage", text)
-        self.assertIn("Status: Logged in", text)
-        self.assertIn("https://liff.line.me/123-test", text)
+        self.assertIn("https://liff.line.me/123-test/check", text)
+        self.assertNotIn("Welcome back", text)
 
     @patch("line_integration.services.requests.post")
     def test_redelivery_does_not_reply_again(self, mock_post: Mock) -> None:

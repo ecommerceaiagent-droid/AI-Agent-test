@@ -17,19 +17,24 @@ LINE_REPLY_URL = "https://api.line.me/v2/bot/message/reply"
 LINE_ISSUER = "https://access.line.me"
 REQUEST_TIMEOUT_SECONDS = 10
 
-def login_page_url() -> str:
+def liff_check_url() -> str:
     liff_id = settings.LIFF_ID
     if liff_id:
-        return f"https://liff.line.me/{liff_id}/login"
+        return f"https://liff.line.me/{liff_id}/check"
     base = settings.FRONTEND_URL.rstrip("/")
-    return f"{base}/login" if base else ""
+    return f"{base}/check" if base else ""
 
 
-def home_page_url() -> str:
-    liff_id = settings.LIFF_ID
-    if liff_id:
-        return f"https://liff.line.me/{liff_id}"
-    return settings.FRONTEND_URL.rstrip("/")
+def liff_check_message() -> str:
+    lines = [
+        "LIFF check",
+        "",
+        "Open this link in LINE. The page shows whether the LIFF app started.",
+    ]
+    link = liff_check_url()
+    if link:
+        lines.extend(["", link])
+    return "\n".join(lines)
 
 
 def remember_verified_user(user: dict[str, Any]) -> None:
@@ -41,37 +46,6 @@ def remember_verified_user(user: dict[str, Any]) -> None:
             "email": user.get("email") or "",
         },
     )
-
-
-def reply_for_line_user(line_user_id: str | None) -> str:
-    account = None
-    if line_user_id:
-        account = LineAccount.objects.filter(line_user_id=line_user_id).first()
-    if account is None:
-        link = login_page_url()
-        lines = [
-            "You are not logged in yet.",
-            "",
-            "Open this page and tap Login with LINE.",
-            "After your name appears, send any message here.",
-        ]
-        if link:
-            lines.extend(["", link])
-        return "\n".join(lines)
-
-    name = account.display_name or "LINE user"
-    lines = [
-        f"Welcome back, {name}. You are already logged in.",
-        "",
-        "Sample homepage",
-        f"Name: {name}",
-        f"LINE user ID: {account.line_user_id}",
-        "Status: Logged in",
-    ]
-    link = home_page_url()
-    if link:
-        lines.extend(["", "Open your homepage:", link])
-    return "\n".join(lines)
 
 
 class LineIntegrationError(Exception):
@@ -192,16 +166,6 @@ def _handle_event(event: dict[str, Any]) -> None:
         raise
 
 
-def _line_user_id(event: dict[str, Any]) -> str | None:
-    source = event.get("source")
-    if not isinstance(source, dict):
-        return None
-    user_id = source.get("userId")
-    if isinstance(user_id, str) and user_id:
-        return user_id
-    return None
-
-
 def _reply_to_event(event: dict[str, Any]) -> None:
     reply_token = event.get("replyToken")
     if not isinstance(reply_token, str) or not reply_token:
@@ -215,7 +179,7 @@ def _reply_to_event(event: dict[str, Any]) -> None:
             return
     elif event_type != "follow":
         return
-    send_reply(reply_token, reply_for_line_user(_line_user_id(event)))
+    send_reply(reply_token, liff_check_message())
 
 
 def send_reply(reply_token: str, text: str) -> None:

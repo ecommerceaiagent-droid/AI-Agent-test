@@ -9,14 +9,10 @@ export function Home() {
       <p className="eyebrow">Prototype</p>
       <h1>AI Agent LINE Test</h1>
       <p className="lede">
-        Sign in with LINE to verify an ID token, then message your Official Account to confirm the
-        webhook replies from Django.
+        Open the LIFF check inside LINE. The page reports whether this LIFF app started and where it is running.
       </p>
       <div className="actions">
-        <ButtonLink to="/signup">Signup</ButtonLink>
-        <ButtonLink to="/login" variant="secondary">
-          Login
-        </ButtonLink>
+        <ButtonLink to="/check">Check LIFF</ButtonLink>
         {lineUrl ? (
           <ButtonAnchor href={lineUrl}>Open in LINE</ButtonAnchor>
         ) : (
