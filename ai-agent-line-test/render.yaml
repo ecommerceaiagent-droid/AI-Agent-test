@@ -1,0 +1,31 @@
+services:
+  - type: web
+    name: ai-agent-line-api
+    runtime: python
+    plan: free
+    region: oregon
+    rootDir: backend
+    buildCommand: pip install -r requirements.txt && python manage.py collectstatic --noinput && python manage.py migrate
+    startCommand: gunicorn config.wsgi:application --bind 0.0.0.0:$PORT --workers 1 --timeout 30
+    healthCheckPath: /api/health/
+    envVars:
+      - key: PYTHON_VERSION
+        value: "3.12.3"
+      - key: PYTHONUNBUFFERED
+        value: "1"
+      - key: DJANGO_SETTINGS_MODULE
+        value: config.settings
+      - key: DJANGO_DEBUG
+        value: "False"
+      - key: DJANGO_ALLOWED_HOSTS
+        value: ai-agent-line-api.onrender.com
+      - key: FRONTEND_URL
+        value: https://ai-agent-line.pages.dev
+      - key: DJANGO_SECRET_KEY
+        generateValue: true
+      - key: LINE_LOGIN_CHANNEL_ID
+        sync: false
+      - key: LINE_CHANNEL_SECRET
+        sync: false
+      - key: LINE_CHANNEL_ACCESS_TOKEN
+        sync: false
