@@ -6,8 +6,7 @@ from unittest.mock import Mock, patch
 
 from django.test import TestCase, override_settings
 
-from .models import ProcessedWebhookEvent
-from .services import DEFAULT_REPLY, WELCOME_REPLY
+from .models import LineAccount, ProcessedWebhookEvent
 
 
 def sign(body: bytes, secret: str = "test-secret") -> str:
@@ -85,6 +84,8 @@ class HealthAndVerifyTests(TestCase):
         self.assertEqual(body["user"]["userId"], "U123")
         self.assertEqual(body["user"]["displayName"], "Verified Name")
         self.assertNotIn("Spoofed", json.dumps(body))
+        saved = LineAccount.objects.get(line_user_id="U123")
+        self.assertEqual(saved.display_name, "Verified Name")
         _, kwargs = mock_post.call_args
         self.assertEqual(kwargs["data"]["client_id"], "1234567890")
         self.assertEqual(kwargs["data"]["id_token"], "header.payload.signature")
@@ -121,6 +122,8 @@ class HealthAndVerifyTests(TestCase):
     LINE_LOGIN_CHANNEL_ID="1234567890",
     LINE_CHANNEL_SECRET="test-secret",
     LINE_CHANNEL_ACCESS_TOKEN="test-token",
+    LIFF_ID="123-test",
+    FRONTEND_URL="https://ai-agent-test.pages.dev",
 )
 class WebhookTests(TestCase):
     def post_webhook(self, body: bytes, signature: str | None = None):
@@ -152,7 +155,7 @@ class WebhookTests(TestCase):
         mock_post.assert_not_called()
 
     @patch("line_integration.services.requests.post")
-    def test_hi_and_other_text_get_expected_replies(self, mock_post: Mock) -> None:
+    def test_new_user_is_sent_to_the_login_page(self, mock_post: Mock) -> None:
         mock_post.return_value = Mock(status_code=200, ok=True, text="{}")
         body = webhook_body(
             [
@@ -165,13 +168,26 @@ class WebhookTests(TestCase):
         self.assertEqual(mock_post.call_count, 2)
         first = mock_post.call_args_list[0].kwargs["json"]["messages"][0]["text"]
         second = mock_post.call_args_list[1].kwargs["json"]["messages"][0]["text"]
-        self.assertEqual(first, WELCOME_REPLY)
-        self.assertEqual(second, DEFAULT_REPLY)
+        self.assertIn("You are not logged in yet.", first)
+        self.assertIn("https://liff.line.me/123-test/login", first)
+        self.assertEqual(first, second)
         self.assertEqual(
             mock_post.call_args_list[0].kwargs["headers"]["Authorization"],
             "Bearer test-token",
         )
-        self.assertEqual(ProcessedWebhookEvent.objects.count(), 2)
+
+    @patch("line_integration.services.requests.post")
+    def test_logged_in_user_receives_homepage(self, mock_post: Mock) -> None:
+        mock_post.return_value = Mock(status_code=200, ok=True, text="{}")
+        LineAccount.objects.create(line_user_id="Uuser", display_name="Test User")
+        body = webhook_body([text_event("evt-home", "hello")])
+        response = self.post_webhook(body, sign(body))
+        self.assertEqual(response.status_code, 200)
+        text = mock_post.call_args.kwargs["json"]["messages"][0]["text"]
+        self.assertIn("Welcome back, Test User.", text)
+        self.assertIn("Sample homepage", text)
+        self.assertIn("Status: Logged in", text)
+        self.assertIn("https://liff.line.me/123-test", text)
 
     @patch("line_integration.services.requests.post")
     def test_redelivery_does_not_reply_again(self, mock_post: Mock) -> None:

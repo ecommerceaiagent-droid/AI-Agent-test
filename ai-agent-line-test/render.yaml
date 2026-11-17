@@ -20,7 +20,9 @@ services:
       - key: DJANGO_ALLOWED_HOSTS
         value: ai-agent-line-api.onrender.com
       - key: FRONTEND_URL
-        value: https://ai-agent-line.pages.dev
+        value: https://ai-agent-test.pages.dev
+      - key: LIFF_ID
+        sync: false
       - key: DJANGO_SECRET_KEY
         generateValue: true
       - key: LINE_LOGIN_CHANNEL_ID

@@ -8,7 +8,7 @@ from typing import Any
 import requests
 from django.conf import settings
 
-from .models import ProcessedWebhookEvent
+from .models import LineAccount, ProcessedWebhookEvent
 
 logger = logging.getLogger(__name__)
 
@@ -17,10 +17,61 @@ LINE_REPLY_URL = "https://api.line.me/v2/bot/message/reply"
 LINE_ISSUER = "https://access.line.me"
 REQUEST_TIMEOUT_SECONDS = 10
 
-WELCOME_REPLY = (
-    "Hello! Welcome to AI Agent. Your LINE Messaging API integration is working successfully."
-)
-DEFAULT_REPLY = "Thank you for your message! Your AI Agent test bot is working."
+def login_page_url() -> str:
+    liff_id = settings.LIFF_ID
+    if liff_id:
+        return f"https://liff.line.me/{liff_id}/login"
+    base = settings.FRONTEND_URL.rstrip("/")
+    return f"{base}/login" if base else ""
+
+
+def home_page_url() -> str:
+    liff_id = settings.LIFF_ID
+    if liff_id:
+        return f"https://liff.line.me/{liff_id}"
+    return settings.FRONTEND_URL.rstrip("/")
+
+
+def remember_verified_user(user: dict[str, Any]) -> None:
+    LineAccount.objects.update_or_create(
+        line_user_id=user["userId"],
+        defaults={
+            "display_name": user.get("displayName") or "",
+            "picture_url": user.get("pictureUrl") or "",
+            "email": user.get("email") or "",
+        },
+    )
+
+
+def reply_for_line_user(line_user_id: str | None) -> str:
+    account = None
+    if line_user_id:
+        account = LineAccount.objects.filter(line_user_id=line_user_id).first()
+    if account is None:
+        link = login_page_url()
+        lines = [
+            "You are not logged in yet.",
+            "",
+            "Open this page and tap Login with LINE.",
+            "After your name appears, send any message here.",
+        ]
+        if link:
+            lines.extend(["", link])
+        return "\n".join(lines)
+
+    name = account.display_name or "LINE user"
+    lines = [
+        f"Welcome back, {name}. You are already logged in.",
+        "",
+        "Sample homepage",
+        f"Name: {name}",
+        f"LINE user ID: {account.line_user_id}",
+        "Status: Logged in",
+    ]
+    link = home_page_url()
+    if link:
+        lines.extend(["", "Open your homepage:", link])
+    return "\n".join(lines)
 
 
 class LineIntegrationError(Exception):
@@ -32,12 +83,6 @@ class LineIntegrationError(Exception):
 class ReplyTokenAlreadyUsed(LineIntegrationError):
     def __init__(self) -> None:
         super().__init__("Reply token was already used.", status_code=200)
-
-
-def reply_text_for(user_text: str) -> str:
-    if user_text.strip().lower() == "hi":
-        return WELCOME_REPLY
-    return DEFAULT_REPLY
 
 
 def verify_id_token(id_token: str) -> dict[str, Any]:
@@ -138,7 +183,7 @@ def _handle_event(event: dict[str, Any]) -> None:
         claimed = True
 
     try:
-        _reply_to_text_message(event)
+        _reply_to_event(event)
     except ReplyTokenAlreadyUsed:
         logger.info("LINE reply token was already used for event %s", event_id or "(no id)")
     except Exception:
@@ -147,17 +192,30 @@ def _handle_event(event: dict[str, Any]) -> None:
         raise
 
 
-def _reply_to_text_message(event: dict[str, Any]) -> None:
-    if event.get("type") != "message":
-        return
-    message = event.get("message")
-    if not isinstance(message, dict) or message.get("type") != "text":
-        return
-    text = message.get("text")
+def _line_user_id(event: dict[str, Any]) -> str | None:
+    source = event.get("source")
+    if not isinstance(source, dict):
+        return None
+    user_id = source.get("userId")
+    if isinstance(user_id, str) and user_id:
+        return user_id
+    return None
+
+
+def _reply_to_event(event: dict[str, Any]) -> None:
     reply_token = event.get("replyToken")
-    if not isinstance(text, str) or not isinstance(reply_token, str) or not reply_token:
+    if not isinstance(reply_token, str) or not reply_token:
         return
-    send_reply(reply_token, reply_text_for(text))
+    event_type = event.get("type")
+    if event_type == "message":
+        message = event.get("message")
+        if not isinstance(message, dict) or message.get("type") != "text":
+            return
+        if not isinstance(message.get("text"), str):
+            return
+    elif event_type != "follow":
+        return
+    send_reply(reply_token, reply_for_line_user(_line_user_id(event)))
 
 
 def send_reply(reply_token: str, text: str) -> None:

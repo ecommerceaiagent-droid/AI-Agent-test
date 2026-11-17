@@ -4,7 +4,7 @@ from rest_framework.permissions import AllowAny
 from rest_framework.response import Response
 from rest_framework.views import APIView
 
-from .services import LineIntegrationError, receive_webhook, verify_id_token
+from .services import LineIntegrationError, receive_webhook, remember_verified_user, verify_id_token
 
 logger = logging.getLogger(__name__)
 
@@ -37,6 +37,7 @@ class LineVerifyView(APIView):
 
         try:
             user = verify_id_token(id_token.strip())
+            remember_verified_user(user)
         except LineIntegrationError as exc:
             logger.info("LINE ID token verification failed with status %s", exc.status_code)
             return Response({"status": "error", "message": str(exc)}, status=exc.status_code)
