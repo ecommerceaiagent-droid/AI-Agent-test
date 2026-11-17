@@ -20,9 +20,8 @@ REQUEST_TIMEOUT_SECONDS = 10
 def liff_check_url() -> str:
     liff_id = settings.LIFF_ID
     if liff_id:
-        return f"https://liff.line.me/{liff_id}/check"
-    base = settings.FRONTEND_URL.rstrip("/")
-    return f"{base}/check" if base else ""
+        return f"https://liff.line.me/{liff_id}"
+    return settings.FRONTEND_URL.rstrip("/")
 
 
 def liff_check_message() -> str:

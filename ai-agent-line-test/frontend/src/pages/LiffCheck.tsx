@@ -53,7 +53,7 @@ export function LiffCheck() {
 
   function requestProfile() {
     setError(null);
-    loginWithLine(`${window.location.origin}/check`);
+    loginWithLine(window.location.origin);
   }
 
   const liffId = getLiffId();

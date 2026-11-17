@@ -169,7 +169,7 @@ class WebhookTests(TestCase):
         first = mock_post.call_args_list[0].kwargs["json"]["messages"][0]["text"]
         second = mock_post.call_args_list[1].kwargs["json"]["messages"][0]["text"]
         self.assertIn("LIFF check", first)
-        self.assertIn("https://liff.line.me/123-test/check", first)
+        self.assertIn("https://liff.line.me/123-test", first)
         self.assertEqual(first, second)
         self.assertEqual(
             mock_post.call_args_list[0].kwargs["headers"]["Authorization"],
@@ -184,7 +184,7 @@ class WebhookTests(TestCase):
         response = self.post_webhook(body, sign(body))
         self.assertEqual(response.status_code, 200)
         text = mock_post.call_args.kwargs["json"]["messages"][0]["text"]
-        self.assertIn("https://liff.line.me/123-test/check", text)
+        self.assertIn("https://liff.line.me/123-test", text)
         self.assertNotIn("Welcome back", text)
 
     @patch("line_integration.services.requests.post")

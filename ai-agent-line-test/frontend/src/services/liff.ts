@@ -10,7 +10,18 @@ export function getLiffId(): string {
 
 export function getLiffUrl(): string {
   const liffId = getLiffId();
-  return liffId ? `https://liff.line.me/${liffId}/check` : '';
+  return liffId ? `https://liff.line.me/${liffId}` : '';
+}
+
+function stayOnEndpoint(): void {
+  const params = new URLSearchParams(window.location.search);
+  if (!params.has('liff.state')) {
+    return;
+  }
+  params.delete('liff.state');
+  const search = params.toString();
+  const next = `${window.location.pathname}${search ? `?${search}` : ''}${window.location.hash}`;
+  window.history.replaceState(window.history.state, '', next);
 }
 
 export interface LiffStatus {
@@ -44,6 +55,7 @@ export function initLiff(): Promise<void> {
     return Promise.reject(new Error('VITE_LIFF_ID is not set. Add it to frontend/.env and restart Vite.'));
   }
   if (!initPromise) {
+    stayOnEndpoint();
     initPromise = liff.init({ liffId }).catch((error: unknown) => {
       initPromise = null;
       throw error;
