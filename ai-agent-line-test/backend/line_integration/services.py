@@ -18,17 +18,15 @@ LINE_ISSUER = "https://access.line.me"
 REQUEST_TIMEOUT_SECONDS = 10
 
 def liff_check_url() -> str:
-    liff_id = settings.LIFF_ID
-    if liff_id:
-        return f"https://liff.line.me/{liff_id}"
-    return settings.FRONTEND_URL.rstrip("/")
+    liff_id = settings.LIFF_ID.strip() or settings.DEFAULT_LIFF_ID
+    return f"https://liff.line.me/{liff_id}"
 
 
 def liff_check_message() -> str:
     lines = [
         "LIFF check",
         "",
-        "Open this link in LINE. The page shows whether the LIFF app started.",
+        "Open this link in the LINE app. It opens in the LIFF browser.",
     ]
     link = liff_check_url()
     if link:

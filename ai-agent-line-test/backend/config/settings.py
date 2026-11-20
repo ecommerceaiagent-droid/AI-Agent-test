@@ -48,7 +48,8 @@ CSRF_TRUSTED_ORIGINS = [origin for origin in CORS_ALLOWED_ORIGINS if origin.star
 LINE_LOGIN_CHANNEL_ID = os.getenv("LINE_LOGIN_CHANNEL_ID", "").strip()
 LINE_CHANNEL_SECRET = os.getenv("LINE_CHANNEL_SECRET", "").strip()
 LINE_CHANNEL_ACCESS_TOKEN = os.getenv("LINE_CHANNEL_ACCESS_TOKEN", "").strip()
-LIFF_ID = os.getenv("LIFF_ID", "").strip()
+DEFAULT_LIFF_ID = "2012550305-HccoF5y6"
+LIFF_ID = os.getenv("LIFF_ID", "").strip() or DEFAULT_LIFF_ID
 
 INSTALLED_APPS = [
     "django.contrib.admin",

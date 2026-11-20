@@ -22,7 +22,7 @@ services:
       - key: FRONTEND_URL
         value: https://ai-agent-test.pages.dev
       - key: LIFF_ID
-        sync: false
+        value: "2012550305-HccoF5y6"
       - key: DJANGO_SECRET_KEY
         generateValue: true
       - key: LINE_LOGIN_CHANNEL_ID

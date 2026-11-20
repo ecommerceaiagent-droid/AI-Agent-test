@@ -1,3 +1,5 @@
+import time
+
 import requests
 from django.conf import settings
 from django.core.management.base import BaseCommand, CommandError
@@ -32,8 +34,18 @@ class Command(BaseCommand):
             action = area["action"]
             self.stdout.write(f"{action['label']}: {action['uri']}")
 
+    def _request(self, method: str, url: str, **kwargs) -> requests.Response:
+        last_error: requests.RequestException | None = None
+        for attempt in range(4):
+            try:
+                return requests.request(method, url, timeout=30, **kwargs)
+            except requests.RequestException as exc:
+                last_error = exc
+                time.sleep(1 + attempt)
+        raise CommandError(f"Could not reach LINE at {url}. {last_error}")
+
     def _delete_previous(self, headers: dict[str, str]) -> None:
-        response = requests.get(f"{LINE_API}/v2/bot/richmenu/list", headers=headers, timeout=20)
+        response = self._request("GET", f"{LINE_API}/v2/bot/richmenu/list", headers=headers)
         self._require(response, "Could not list rich menus.")
         for menu in response.json().get("richmenus", []):
             if menu.get("name") != MENU_NAME:
@@ -41,11 +53,16 @@ class Command(BaseCommand):
             menu_id = menu.get("richMenuId")
             if not isinstance(menu_id, str):
                 continue
-            deleted = requests.delete(f"{LINE_API}/v2/bot/richmenu/{menu_id}", headers=headers, timeout=20)
+            deleted = self._request("DELETE", f"{LINE_API}/v2/bot/richmenu/{menu_id}", headers=headers)
             self._require(deleted, f"Could not replace rich menu {menu_id}.")
 
     def _create(self, headers: dict[str, str], menu: dict) -> str:
-        response = requests.post(f"{LINE_API}/v2/bot/richmenu", headers={**headers, "Content-Type": "application/json"}, json=menu, timeout=20)
+        response = self._request(
+            "POST",
+            f"{LINE_API}/v2/bot/richmenu",
+            headers={**headers, "Content-Type": "application/json"},
+            json=menu,
+        )
         self._require(response, "LINE rejected the rich menu.")
         menu_id = response.json().get("richMenuId")
         if not isinstance(menu_id, str) or not menu_id:
@@ -53,16 +70,16 @@ class Command(BaseCommand):
         return menu_id
 
     def _upload(self, headers: dict[str, str], menu_id: str, image: bytes) -> None:
-        response = requests.post(
+        response = self._request(
+            "POST",
             f"{LINE_DATA_API}/v2/bot/richmenu/{menu_id}/content",
             headers={**headers, "Content-Type": "image/png"},
             data=image,
-            timeout=30,
         )
         self._require(response, "LINE rejected the menu image.")
 
     def _set_default(self, headers: dict[str, str], menu_id: str) -> None:
-        response = requests.post(f"{LINE_API}/v2/bot/user/all/richmenu/{menu_id}", headers=headers, timeout=20)
+        response = self._request("POST", f"{LINE_API}/v2/bot/user/all/richmenu/{menu_id}", headers=headers)
         self._require(response, "LINE did not set the menu as the default.")
 
     def _require(self, response: requests.Response, message: str) -> None:

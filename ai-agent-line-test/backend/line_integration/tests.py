@@ -186,7 +186,19 @@ class WebhookTests(TestCase):
         self.assertEqual(response.status_code, 200)
         text = mock_post.call_args.kwargs["json"]["messages"][0]["text"]
         self.assertIn("https://liff.line.me/123-test", text)
+        self.assertNotIn("ai-agent-test.pages.dev", text)
         self.assertNotIn("Welcome back", text)
+
+    @patch("line_integration.services.requests.post")
+    @override_settings(LIFF_ID="")
+    def test_hi_reply_uses_liff_when_the_setting_is_blank(self, mock_post: Mock) -> None:
+        mock_post.return_value = Mock(status_code=200, ok=True, text="{}")
+        body = webhook_body([text_event("evt-blank-liff", "Hi")])
+        response = self.post_webhook(body, sign(body))
+        self.assertEqual(response.status_code, 200)
+        text = mock_post.call_args.kwargs["json"]["messages"][0]["text"]
+        self.assertIn("https://liff.line.me/2012550305-HccoF5y6", text)
+        self.assertNotIn("pages.dev", text)
 
     @patch("line_integration.services.requests.post")
     def test_redelivery_does_not_reply_again(self, mock_post: Mock) -> None:
