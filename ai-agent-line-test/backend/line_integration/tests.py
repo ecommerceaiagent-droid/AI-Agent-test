@@ -7,6 +7,7 @@ from unittest.mock import Mock, patch
 from django.test import TestCase, override_settings
 
 from .models import LineAccount, ProcessedWebhookEvent
+from .services import sample_rich_menu
 
 
 def sign(body: bytes, secret: str = "test-secret") -> str:
@@ -238,3 +239,16 @@ class WebhookTests(TestCase):
     def test_missing_secret_does_not_accept_unsigned_events(self) -> None:
         response = self.post_webhook(webhook_body([]), signature="anything")
         self.assertEqual(response.status_code, 503)
+
+
+class SampleRichMenuTests(TestCase):
+    def test_menu_icons_open_sample_pages_in_liff(self) -> None:
+        menu = sample_rich_menu("123-test")
+        self.assertEqual([area["action"]["label"] for area in menu["areas"]], ["Sample 1", "Sample 2"])
+        self.assertEqual(
+            [area["action"]["uri"] for area in menu["areas"]],
+            [
+                "https://liff.line.me/123-test/samples/one",
+                "https://liff.line.me/123-test/samples/two",
+            ],
+        )

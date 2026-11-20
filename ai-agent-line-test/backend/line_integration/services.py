@@ -181,6 +181,32 @@ def _reply_to_event(event: dict[str, Any]) -> None:
     send_reply(reply_token, liff_check_message())
 
 
+def sample_liff_url(liff_id: str, path: str) -> str:
+    return f"https://liff.line.me/{liff_id.strip('/')}/{path.lstrip('/')}"
+
+
+def sample_rich_menu(liff_id: str) -> dict[str, Any]:
+    width = 2500
+    height = 843
+    area_width = width // 2
+    pages = (("samples/one", "Sample 1"), ("samples/two", "Sample 2"))
+    areas = []
+    for index, (path, label) in enumerate(pages):
+        areas.append(
+            {
+                "bounds": {"x": index * area_width, "y": 0, "width": area_width, "height": height},
+                "action": {"type": "uri", "label": label, "uri": sample_liff_url(liff_id, path)},
+            }
+        )
+    return {
+        "size": {"width": width, "height": height},
+        "selected": True,
+        "name": "Sample pages",
+        "chatBarText": "Menu",
+        "areas": areas,
+    }
+
+
 def send_reply(reply_token: str, text: str) -> None:
     access_token = settings.LINE_CHANNEL_ACCESS_TOKEN
     if not access_token:
