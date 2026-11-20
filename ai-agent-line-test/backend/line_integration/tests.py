@@ -169,7 +169,9 @@ class WebhookTests(TestCase):
         self.assertEqual(mock_post.call_count, 2)
         first = mock_post.call_args_list[0].kwargs["json"]["messages"][0]["text"]
         second = mock_post.call_args_list[1].kwargs["json"]["messages"][0]["text"]
-        self.assertIn("LIFF check", first)
+        self.assertIn("smally.life", first)
+        self.assertNotIn("https://smally.life", first)
+        self.assertNotIn("pages.dev", first)
         self.assertIn("https://liff.line.me/123-test", first)
         self.assertEqual(first, second)
         self.assertEqual(

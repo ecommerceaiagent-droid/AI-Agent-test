@@ -23,15 +23,16 @@ def liff_check_url() -> str:
 
 
 def liff_check_message() -> str:
-    lines = [
-        "LIFF check",
-        "",
-        "Open this link in the LINE app. It opens in the LIFF browser.",
-    ]
-    link = liff_check_url()
-    if link:
-        lines.extend(["", link])
-    return "\n".join(lines)
+    site = settings.LIFF_ENDPOINT_URL.removeprefix("https://").removeprefix("http://").strip("/")
+    return "\n".join(
+        [
+            site,
+            "",
+            "Open this link in the LINE app. It opens in the LIFF browser.",
+            "",
+            liff_check_url(),
+        ]
+    )
 
 
 def remember_verified_user(user: dict[str, Any]) -> None:

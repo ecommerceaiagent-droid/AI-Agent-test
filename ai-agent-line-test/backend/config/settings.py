@@ -50,6 +50,7 @@ LINE_CHANNEL_SECRET = os.getenv("LINE_CHANNEL_SECRET", "").strip()
 LINE_CHANNEL_ACCESS_TOKEN = os.getenv("LINE_CHANNEL_ACCESS_TOKEN", "").strip()
 DEFAULT_LIFF_ID = "2012550305-HccoF5y6"
 LIFF_ID = os.getenv("LIFF_ID", "").strip() or DEFAULT_LIFF_ID
+LIFF_ENDPOINT_URL = "https://smally.life"
 
 INSTALLED_APPS = [
     "django.contrib.admin",
